@@ -2,9 +2,12 @@
 
 class UserController
 {
+   private JWTHandler $jwtHandler;
+
    public function __construct(private UsersGateway $usersGateway)
    {
        //$this->usersGateway = $usersGateway;
+       $this->jwtHandler = new JWTHandler();
    }
 
     public function processRequest (string $method, ?string $action, ?string $id): void
@@ -69,12 +72,19 @@ class UserController
      // GET /users - Get all users
      private function index(): void
      {
+        $this->jwtHandler->requireRole(1);
+
         echo json_encode($this->usersGateway->getAllUsers());
      }
 
      // GET /users/{id} - Get single user
      private function show(int $id): void
      {
+        $payload = $this->jwtHandler->requireAuth();
+        
+        if ($payload['user_id'] !== $id) {
+            $this->jwtHandler->requireRole(1);
+        }
         if (!$this->usersGateway->userExists($id)) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);
@@ -86,6 +96,7 @@ class UserController
      // POST /users - Create new user
      private function store(): void
      {
+        $this->jwtHandler->requireRole(1);
         $data = (array) json_decode(file_get_contents('php://input'), true);
         $errors = $this->getValidationErrors($data);
         if (!empty($errors)) {
@@ -120,6 +131,7 @@ class UserController
      // DELETE /users/{id} - Delete user
      private function destroy(int $id): void
      {
+        $this->jwtHandler->requireRole(1);
         if (!$this->usersGateway->userExists($id)) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);
@@ -129,12 +141,6 @@ class UserController
         http_response_code(200);
         echo json_encode(['message' => 'User deleted']);
      }
-
-     // POST /users/create - Alternative create endpoint
-    /*  private function create(): void
-     {
-        $this->store();
-     } */
 
      // POST /users/authenticate or /users/authenticateUser
      private function authenticate(): void
@@ -150,19 +156,91 @@ class UserController
         $user = $this->usersGateway->authenticateUser($data['username'], $data['password']);
         
         if ($user) {
+            // Generate JWT token
+            $token = $this->jwtHandler->generateToken([
+                'user_id' => $user['id'],
+                'username' => $user['username'],
+                'role_id' => $user['roles_id']
+            ]);
+
             unset($user['password']);
             http_response_code(200);
-            echo json_encode(['message' => 'Authentication successful', 'user' => $user]);
+            echo json_encode([
+                'message' => 'Authentication successful',
+                'token' => $token,
+                'user' => $user
+            ]);
         } else {
             http_response_code(401);
             echo json_encode(['error' => 'Invalid credentials']);
         }
      }
 
-     /* private function authenticateUser(): void
+
+
+     // GET /users/profile - Get current user's profile (requires authentication)
+     private function profile(): void
      {
-        $this->authenticate();
-     } */
+        // Require authentication and get payload
+        $payload = $this->jwtHandler->requireAuth();
+        
+        $userId = $payload['user_id'];
+        $user = $this->usersGateway->getUserById($userId);
+        
+        if ($user) {
+            http_response_code(200);
+            echo json_encode(['user' => $user]);
+        } else {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+        }
+     }
+
+     // POST /users/validate - Validate JWT token
+     private function validate(): void
+     {
+        $payload = $this->jwtHandler->requireAuth();
+        
+        http_response_code(200);
+        echo json_encode([
+            'valid' => true,
+            'user_id' => $payload['user_id'],
+            'username' => $payload['username'],
+            'role_id' => $payload['role_id']
+        ]);
+     }
+
+     // GET /users/admin - Admin only endpoint (requires role_id = 1)
+     private function admin(): void
+     {
+        // Require admin role (assuming 1 = admin)
+        $payload = $this->jwtHandler->requireRole(1);
+        
+        http_response_code(200);
+        echo json_encode([
+            'message' => 'Welcome admin!',
+            'users' => $this->usersGateway->getAllUsers()
+        ]);
+     }
+
+     // Helper method to check if user has permission for action
+     private function checkPermission(int $userId): bool
+     {
+        $token = $this->jwtHandler->getTokenFromHeader();
+        
+        if (!$token) {
+            return false;
+        }
+
+        $payload = $this->jwtHandler->validateToken($token);
+        
+        if (!$payload) {
+            return false;
+        }
+
+        // Users can only modify their own data, unless they're admin
+        return $payload['user_id'] === $userId || $payload['role_id'] === 1;
+     }
 
      private function getValidationErrors(array $data, bool $isNew = true): array
      {
