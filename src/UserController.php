@@ -112,6 +112,7 @@ class UserController
      // PUT/PATCH /users/{id} - Update user
      private function update(int $id): void
      {
+        $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         if (!$this->usersGateway->userExists($id)) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);

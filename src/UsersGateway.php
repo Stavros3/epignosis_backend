@@ -30,7 +30,7 @@ class UsersGateway
           $stmt -> bindValue(':name', $data['name'], PDO::PARAM_STR);
           $stmt -> bindValue(':email', $data['email'], PDO::PARAM_STR);
           $stmt -> bindValue(':username', $data['username'], PDO::PARAM_STR);
-          $stmt -> bindValue(':employ_code', $data['employ_code'], PDO::PARAM_STR);
+          $stmt -> bindValue(':employ_code', $data['employ_code'], PDO::PARAM_INT);
           $stmt -> bindValue(':roles_id', $data['roles_id'] ?? UserRole::USER->value, PDO::PARAM_INT);
           $stmt -> bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT), PDO::PARAM_STR);
           $stmt->execute();
@@ -40,13 +40,13 @@ class UsersGateway
 
     public function updateUser(int $id, array $data): bool
     {
-        $stmt = $this->pdo->prepare("UPDATE users SET name = :name, email = :email, username = :username, employ_code = :employ_code, roles_id = :roles_id WHERE id = :id");
+        $stmt = $this->pdo->prepare("UPDATE users SET name = :name, email = :email, username = :username, employ_code = :employ_code  WHERE id = :id");
 
         $stmt -> bindValue(':name', $data['name'], PDO::PARAM_STR);
         $stmt -> bindValue(':email', $data['email'], PDO::PARAM_STR);
         $stmt -> bindValue(':username', $data['username'], PDO::PARAM_STR);
-        $stmt -> bindValue(':employ_code', $data['employ_code'], PDO::PARAM_STR);
-        $stmt -> bindValue(':roles_id', $data['roles_id'] ?? null, PDO::PARAM_INT);
+        $stmt -> bindValue(':employ_code', $data['employ_code'], PDO::PARAM_INT);
+        //$stmt -> bindValue(':roles_id', $data['roles_id'] ?? null, PDO::PARAM_INT);
         $stmt -> bindValue(':id', $id, PDO::PARAM_INT);
         return $stmt->execute();
     }
