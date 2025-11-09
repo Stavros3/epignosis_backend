@@ -7,71 +7,162 @@ class UserController
        //$this->usersGateway = $usersGateway;
    }
 
-    public function processRequest (string $method, ?string $id): void
+    public function processRequest (string $method, ?string $action, ?string $id): void
     {
+        try {
+            // If action is numeric, it's an ID for resource-specific operations
+            if ($action && is_numeric($action)) {
+                $this->callMethod($method, (int) $action);
+                return;
+            }
 
-        if ($id) {
-            $this->processResourceRequest($method, $id);
+            // Handle specific action methods
+            if ($action) {
+                $this->callMethod($action, $id);
+                return;
+            }
+
+            // Default collection requests (index, store)
+            $this->callMethod($method);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+
+    private function callMethod(string $actionOrMethod, mixed $param = null): void
+    {
+        // Map HTTP methods to controller method names
+        $methodMap = [
+            'GET' => $param !== null && is_int($param) ? 'show' : 'index',
+            'POST' => 'store',
+            'PUT' => 'update',
+            'PATCH' => 'update',
+            'DELETE' => 'destroy'
+        ];
+
+        // Determine the method name to call
+        if (isset($methodMap[$actionOrMethod])) {
+            $methodName = $methodMap[$actionOrMethod];
         } else {
-            $this->processCollectionRequest($method);
+            // It's a custom action, convert to camelCase if needed
+            $methodName = $actionOrMethod;
         }
 
+        // Check if method exists
+        if (!method_exists($this, $methodName)) {
+            http_response_code(404);
+            echo json_encode(['error' => "Action '{$methodName}' not found"]);
+            return;
+        }
 
-        //return dump json
-        /* echo json_encode([
-            'method' => $method,
-            'id' => $id
-        ]); */
-      //var_dump($method, $id);
-        
-        /* switch ($method) {
-            case 'GET':
-                $this->index();
-                break;
-            default:
-                http_response_code(405);
-                echo "Method Not Allowed";
-                break;
-        } */
+        // Call the method with parameter if provided
+        if ($param !== null) {
+            $this->$methodName($param);
+        } else {
+            $this->$methodName();
+        }
     }
 
 
 
-     private function processResourceRequest(string $method, ?string $id): void 
+     // GET /users - Get all users
+     private function index(): void
      {
-        // Implement resource-specific request processing here
+        echo json_encode($this->usersGateway->getAllUsers());
      }
 
-     private function processCollectionRequest(string $method): void 
+     // GET /users/{id} - Get single user
+     private function show(int $id): void
      {
-        // Implement collection-specific request processing here
+        if (!$this->usersGateway->userExists($id)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            return;
+        }
+        echo json_encode($this->usersGateway->getUserById($id));
+     }
 
-        switch ($method) {
-            case 'GET':
-                echo json_encode($this->usersGateway->getAllUsers());
-                break;
-                case 'POST':
-                // Handle user creation
-                $data = (array) json_decode(file_get_contents('php://input'), true);
-                $errors = $this->getValidationErrors($data);
-                if (!empty($errors)) {
-                    http_response_code(422);
-                    echo json_encode(['errors' => $errors]);
-                    break;
-                }
-                //$data = json_decode($data, true);
-                var_dump($data);
+     // POST /users - Create new user
+     private function store(): void
+     {
+        $data = (array) json_decode(file_get_contents('php://input'), true);
+        $errors = $this->getValidationErrors($data);
+        if (!empty($errors)) {
+            http_response_code(422);
+            echo json_encode(['errors' => $errors]);
+            return;
+        }
+        $newUserId = $this->usersGateway->createUser($data);
+        http_response_code(201);
+        echo json_encode(['message' => 'User created', 'id' => $newUserId]);
+     }
 
-                $newUserId = $this->usersGateway->createUser($data);
-                http_response_code(201);
-                echo json_encode(['message' => 'User created', 'id' => $newUserId]); 
-                break;
-            default:
-                http_response_code(405);
-                echo "Method Not Allowed";
-                break;
+     // PUT/PATCH /users/{id} - Update user
+     private function update(int $id): void
+     {
+        if (!$this->usersGateway->userExists($id)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            return;
+        }
+        $data = (array) json_decode(file_get_contents('php://input'), true);
+        $errors = $this->getValidationErrors($data, false);
+        if (!empty($errors)) {
+            http_response_code(422);
+            echo json_encode(['errors' => $errors]);
+            return;
+        }
+        $this->usersGateway->updateUser($id, $data);
+        echo json_encode(['message' => 'User updated', 'id' => $id]);
+     }
+
+     // DELETE /users/{id} - Delete user
+     private function destroy(int $id): void
+     {
+        if (!$this->usersGateway->userExists($id)) {
+            http_response_code(404);
+            echo json_encode(['error' => 'User not found']);
+            return;
+        }
+        $this->usersGateway->deleteUser($id);
+        http_response_code(200);
+        echo json_encode(['message' => 'User deleted']);
+     }
+
+     // POST /users/create - Alternative create endpoint
+    /*  private function create(): void
+     {
+        $this->store();
+     } */
+
+     // POST /users/authenticate or /users/authenticateUser
+     private function authenticate(): void
+     {
+        $data = (array) json_decode(file_get_contents('php://input'), true);
+        
+        if (empty($data['username']) || empty($data['password'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Username and password are required']);
+            return;
+        }
+
+        $user = $this->usersGateway->authenticateUser($data['username'], $data['password']);
+        
+        if ($user) {
+            unset($user['password']);
+            http_response_code(200);
+            echo json_encode(['message' => 'Authentication successful', 'user' => $user]);
+        } else {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid credentials']);
         }
      }
+
+     /* private function authenticateUser(): void
+     {
+        $this->authenticate();
+     } */
 
      private function getValidationErrors(array $data, bool $isNew = true): array
      {

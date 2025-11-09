@@ -18,12 +18,12 @@ set_exception_handler(['ErrorHandler', 'handleException']);
 
 header("Content-Type: application/json; charset=UTF-8");
 
-$uriSegments = explode("/", $_SERVER["REQUEST_URI"]);
- // print_r($uriSegments);
+$uri = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+$uriSegments = explode("/", trim($uri, "/"));
 
-if ($uriSegments[1] != 'users') {
+if ($uriSegments[0] != 'users') {
     http_response_code(404);
-    echo "404 Not Found";
+    echo json_encode(['error' => '404 Not Found']);
     exit();
 } 
 
@@ -33,12 +33,15 @@ $dbUser = getenv('DB_USERNAME') ?: 'appuser';
 $dbPass = getenv('DB_PASSWORD') ?: 'apppass';
 
 $database = new Database($dbHost, $dbName, $dbUser, $dbPass);
-//$pdo = $database->getConnection();
 
 $usersGateway = new UsersGateway($database);
 $controller = new UserController($usersGateway);
 
-$controller->processRequest($_SERVER["REQUEST_METHOD"], $uriSegments[2] ?? null);
+// Pass the method name/action and any additional ID
+$action = $uriSegments[1] ?? null;
+$id = $uriSegments[2] ?? null;
+
+$controller->processRequest($_SERVER["REQUEST_METHOD"], $action, $id);
 
 
 
