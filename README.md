@@ -1,6 +1,10 @@
 # epignosis_backend
 
-A RESTful API with JWT authentication, role-based access control, and vacation management system.
+# PHP REST API - Epignosis Backend
+
+A RESTful API built with PHP for managing users and vacation requests with JWT authentication, role-based access control, and CORS support for Angular integration.
+
+**Frontend Project:** [epignosis_frontend](https://github.com/Stavros3/epignosis_frontend)
 
 ## Features
 
@@ -13,82 +17,50 @@ A RESTful API with JWT authentication, role-based access control, and vacation m
 - ✅ Docker support
 - ✅ MySQL database
 
-## JWT Authentication
+## Quick Start
 
-This API uses JWT tokens for authentication and authorization. See [JWT_USAGE_EXAMPLES.md](JWT_USAGE_EXAMPLES.md) for detailed usage examples.
-
-### Quick Start
-
-1. **Authenticate and get a token:**
+### 1. Authenticate
 ```bash
-curl -X POST http://localhost/users/authenticate \
+curl -X POST http://localhost:8080/users/authenticate \
   -H "Content-Type: application/json" \
-  -d '{"username": "your_username", "password": "your_password"}'
+  -d '{"username": "admin", "password": "password123"}'
 ```
 
-2. **Use the token in subsequent requests:**
+### 2. Create Vacation Request
 ```bash
-curl -X GET http://localhost/users/profile \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-```
-
-### Available Endpoints
-
-#### Public Endpoints (No authentication required)
-- `POST /users` - Create a new user
-- `POST /users/authenticate` - Login and get JWT token
-
-#### Protected Endpoints (Require authentication)
-- `GET /users/profile` - Get current user's profile
-- `POST /users/validate` - Validate JWT token
-- `PUT /users/{id}` - Update user (own profile or admin)
-
-#### Admin-Only Endpoints (Require role_id = 1)
-- `GET /users` - Get all users
-- `GET /users/admin` - Admin dashboard
-- `DELETE /users/{id}` - Delete user
-
-## Vacation Management
-
-This API includes a complete vacation request and approval system. See [VACATION_API_DOCUMENTATION.md](VACATION_API_DOCUMENTATION.md) for detailed documentation.
-
-### Vacation Endpoints
-
-#### For All Users
-- `POST /vacations` - Create vacation request
-- `GET /vacations` - Get vacations (users see own, admins see all)
-- `GET /vacations/my` - Get current user's vacations
-- `GET /vacations/{id}` - Get single vacation
-- `PUT /vacations/{id}` - Update vacation details (own pending only)
-- `DELETE /vacations/{id}` - Delete vacation (own pending only)
-
-#### For Admins Only
-- `PUT /vacations/{id}` with `status_id` - Approve/reject vacations
-- Full access to all vacation operations
-
-### Vacation Statuses
-- **1** = APPROVED
-- **2** = REJECTED
-- **3** = PENDING (default)
-
-### Quick Example
-```bash
-# Create vacation request
 curl -X POST http://localhost:8080/vacations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "date_from": "2025-12-01",
     "date_to": "2025-12-10",
-    "reason": "Family vacation to beach resort"
+    "reason": "Family vacation"
   }'
+```
 
-# Approve vacation (admin only)
+### 3. Approve Vacation (Admin)
+```bash
 curl -X PUT http://localhost:8080/vacations/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ADMIN_TOKEN" \
   -d '{"status_id": 1}'
 ```
+
+## API Endpoints
+
+### Users
+- `POST /users/authenticate` - Login & get JWT token
+- `GET /users/profile` - Get current user profile (auth required)
+- `POST /users/validate` - Validate JWT token
+- `GET /users` - Get all users (admin only)
+- `DELETE /users/{id}` - Delete user (admin only)
+
+### Vacations
+- `POST /vacations` - Create vacation request
+- `GET /vacations` - Get vacations (user: own, admin: all)
+- `GET /vacations/{id}` - Get single vacation
+- `PUT /vacations/{id}` - Approve/reject vacation (admin only)
+- `DELETE /vacations/{id}` - Delete vacation (admin only)
 
 ## Environment Variables
 
@@ -110,12 +82,15 @@ JWT_SECRET=your-super-secret-key-here
 4. Set up database tables: `mysql -u appuser -p my_database < vacation_schema.sql`
 5. Access API at `http://localhost:8080`
 
-## API Documentation
+## Documentation
 
-- **[JWT_USAGE_EXAMPLES.md](JWT_USAGE_EXAMPLES.md)** - JWT authentication guide
-- **[VACATION_API_DOCUMENTATION.md](VACATION_API_DOCUMENTATION.md)** - Complete vacation API docs
-- **[VACATION_QUICK_REFERENCE.md](VACATION_QUICK_REFERENCE.md)** - Quick reference guide
-- **[CORS_CONFIGURATION.md](CORS_CONFIGURATION.md)** - CORS setup for Angular
+## Documentation
+
+- [API Documentation](API_DOCUMENTATION.md) - Complete API reference with examples
+- [JWT Authentication Guide](JWT_GUIDE.md) - JWT implementation and usage
+- [Vacation System Guide](VACATION_GUIDE.md) - Vacation management system
+- [CORS Configuration](CORS_GUIDE.md) - CORS setup for Angular
+- [Enums Guide](ENUMS_GUIDE.md) - Type-safe enumerations
 
 ## Security Notes
 
