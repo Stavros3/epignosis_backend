@@ -32,7 +32,10 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 $uri = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
 $uriSegments = explode("/", trim($uri, "/"));
 
-if ($uriSegments[0] != 'users') {
+$resource = $uriSegments[0] ?? null;
+
+// Check if resource exists
+if (!in_array($resource, ['users', 'vacations'])) {
     http_response_code(404);
     echo json_encode(['error' => '404 Not Found']);
     exit();
@@ -45,8 +48,14 @@ $dbPass = getenv('DB_PASSWORD') ?: 'apppass';
 
 $database = new Database($dbHost, $dbName, $dbUser, $dbPass);
 
-$usersGateway = new UsersGateway($database);
-$controller = new UserController($usersGateway);
+// Route to appropriate controller
+if ($resource === 'users') {
+    $usersGateway = new UsersGateway($database);
+    $controller = new UserController($usersGateway);
+} elseif ($resource === 'vacations') {
+    $vacationGateway = new VacationGateway($database);
+    $controller = new VacationController($vacationGateway);
+}
 
 // Pass the method name/action and any additional ID
 $action = $uriSegments[1] ?? null;
