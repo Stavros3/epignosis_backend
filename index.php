@@ -3,14 +3,24 @@
 declare(strict_types=1);
 
 spl_autoload_register(function ($className) {
+    // Try loading from src/ directory
     $filePath = __DIR__ . '/src/' . $className . '.php';
     if (file_exists($filePath)) {
         require_once $filePath;
-    } else {
-        http_response_code(500);
-        echo "Internal Server Error: Class file for {$className} not found.";
-        exit();
+        return;
     }
+    
+    // Try loading from src/enums/ directory
+    $enumPath = __DIR__ . '/src/enums/' . $className . '.php';
+    if (file_exists($enumPath)) {
+        require_once $enumPath;
+        return;
+    }
+    
+    // Class not found
+    http_response_code(500);
+    echo json_encode(['error' => "Internal Server Error: Class file for {$className} not found."]);
+    exit();
 });
 
 set_error_handler(['ErrorHandler', 'handleError']);

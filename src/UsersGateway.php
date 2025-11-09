@@ -31,7 +31,7 @@ class UsersGateway
           $stmt -> bindValue(':email', $data['email'], PDO::PARAM_STR);
           $stmt -> bindValue(':username', $data['username'], PDO::PARAM_STR);
           $stmt -> bindValue(':employ_code', $data['employ_code'], PDO::PARAM_STR);
-          $stmt -> bindValue(':roles_id', $data['roles_id'] ?? 2, PDO::PARAM_INT);
+          $stmt -> bindValue(':roles_id', $data['roles_id'] ?? UserRole::USER->value, PDO::PARAM_INT);
           $stmt -> bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT), PDO::PARAM_STR);
           $stmt->execute();
 

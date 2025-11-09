@@ -75,7 +75,7 @@ class VacationController
         $roleId = $payload['role_id'];
 
         // Admin can see all vacations (ordered by pending first)
-        if ($roleId === 1) {
+        if ($roleId === UserRole::ADMIN->value) {
             $vacations = $this->vacationGateway->getAllVacations();
         } else {
             // Regular users can only see their own vacations
@@ -101,7 +101,7 @@ class VacationController
 
         // Check if user has permission to view this vacation
         // Admin can view all, regular users can only view their own
-        if ($payload['role_id'] !== 1 && $vacation['user_id'] !== $payload['user_id']) {
+        if ($payload['role_id'] !== UserRole::ADMIN->value && $vacation['user_id'] !== $payload['user_id']) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied']);
             return;
@@ -134,7 +134,7 @@ class VacationController
         echo json_encode([
             'message' => 'Vacation request created successfully',
             'id' => $newVacationId,
-            'status' => 'PENDING'
+            'status' => VacationStatus::PENDING->getName()
         ]);
     }
 
@@ -142,7 +142,7 @@ class VacationController
     private function update(int $id): void
     {
         // Require admin role
-        $payload = $this->jwtHandler->requireRole(1);
+        $payload = $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         
         if (!$this->vacationGateway->vacationExists($id)) {
             http_response_code(404);
@@ -166,16 +166,16 @@ class VacationController
     {
         $statusId = (int) $data['status_id'];
 
-        // Validate status_id (1=APPROVED, 2=REJECTED, 3=PENDING)
-        if (!in_array($statusId, [1, 2, 3])) {
+        // Validate status_id
+        if (!VacationStatus::isValid($statusId)) {
             http_response_code(422);
-            echo json_encode(['error' => 'Invalid status_id. Must be 1 (APPROVED), 2 (REJECTED), or 3 (PENDING)']);
+            echo json_encode(['error' => 'Invalid status_id. Must be ' . VacationStatus::APPROVED->value . ' (APPROVED), ' . VacationStatus::REJECTED->value . ' (REJECTED), or ' . VacationStatus::PENDING->value . ' (PENDING)']);
             return;
         }
 
         $this->vacationGateway->updateVacationStatus($id, $statusId);
         
-        $statusNames = [1 => 'APPROVED', 2 => 'REJECTED', 3 => 'PENDING'];
+        $statusNames = VacationStatus::getAll();
         
         http_response_code(200);
         echo json_encode([
@@ -188,7 +188,7 @@ class VacationController
     // DELETE /vacations/{id} - Delete vacation (admin only)
     private function destroy(int $id): void
     {
-        $this->jwtHandler->requireRole(1);
+        $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         
         if (!$this->vacationGateway->vacationExists($id)) {
             http_response_code(404);

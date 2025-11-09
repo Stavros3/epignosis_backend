@@ -136,8 +136,8 @@ class JWTHandler
             return false;
         }
 
-        // Assuming lower role_id means higher privileges (e.g., 1 = admin, 2 = user)
-        // Admins (role_id = 1) can access everything
+        // Assuming lower role_id means higher privileges (e.g., ADMIN = 1, USER = 2)
+        // Admins can access everything
         return $userRoleId <= $requiredRoleId;
     }
 

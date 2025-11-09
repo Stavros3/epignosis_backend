@@ -72,7 +72,7 @@ class UserController
      // GET /users - Get all users
      private function index(): void
      {
-        $this->jwtHandler->requireRole(1);
+        $this->jwtHandler->requireRole(UserRole::ADMIN->value);
 
         echo json_encode($this->usersGateway->getAllUsers());
      }
@@ -83,7 +83,7 @@ class UserController
         $payload = $this->jwtHandler->requireAuth();
         
         if ($payload['user_id'] !== $id) {
-            $this->jwtHandler->requireRole(1);
+            $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         }
         if (!$this->usersGateway->userExists($id)) {
             http_response_code(404);
@@ -96,7 +96,7 @@ class UserController
      // POST /users - Create new user
      private function store(): void
      {
-        $this->jwtHandler->requireRole(1);
+        $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         $data = (array) json_decode(file_get_contents('php://input'), true);
         $errors = $this->getValidationErrors($data);
         if (!empty($errors)) {
@@ -131,7 +131,7 @@ class UserController
      // DELETE /users/{id} - Delete user
      private function destroy(int $id): void
      {
-        $this->jwtHandler->requireRole(1);
+        $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         if (!$this->usersGateway->userExists($id)) {
             http_response_code(404);
             echo json_encode(['error' => 'User not found']);
@@ -210,11 +210,11 @@ class UserController
         ]);
      }
 
-     // GET /users/admin - Admin only endpoint (requires role_id = 1)
+     // GET /users/admin - Admin only endpoint (requires admin role)
      private function admin(): void
      {
-        // Require admin role (assuming 1 = admin)
-        $payload = $this->jwtHandler->requireRole(1);
+        // Require admin role
+        $payload = $this->jwtHandler->requireRole(UserRole::ADMIN->value);
         
         http_response_code(200);
         echo json_encode([
@@ -239,7 +239,7 @@ class UserController
         }
 
         // Users can only modify their own data, unless they're admin
-        return $payload['user_id'] === $userId || $payload['role_id'] === 1;
+        return $payload['user_id'] === $userId || $payload['role_id'] === UserRole::ADMIN->value;
      }
 
      private function getValidationErrors(array $data, bool $isNew = true): array

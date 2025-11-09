@@ -64,13 +64,14 @@ class VacationGateway
     {
         $stmt = $this->pdo->prepare(
             "INSERT INTO vacations (user_id, date_from, date_to, reason, status_id, created_at, updated_at) 
-             VALUES (:user_id, :date_from, :date_to, :reason, 3, NOW(), NOW())"
+             VALUES (:user_id, :date_from, :date_to, :reason, :status_id, NOW(), NOW())"
         );
 
         $stmt->bindValue(':user_id', $data['user_id'], PDO::PARAM_INT);
         $stmt->bindValue(':date_from', $data['date_from'], PDO::PARAM_STR);
         $stmt->bindValue(':date_to', $data['date_to'], PDO::PARAM_STR);
         $stmt->bindValue(':reason', $data['reason'], PDO::PARAM_STR);
+        $stmt->bindValue(':status_id', VacationStatus::PENDING->value, PDO::PARAM_INT);
         $stmt->execute();
 
         return (int)$this->pdo->lastInsertId();
