@@ -4,7 +4,8 @@
 
 A RESTful API built with PHP for managing users and vacation requests with JWT authentication, role-based access control, and CORS support for Angular integration.
 
-**Frontend Project:** [epignosis_frontend](https://github.com/Stavros3/epignosis_frontend)
+**Frontend Project:** [epignosis_frontend](https://github.com/Stavros3/epignosis_frontend)  
+**phpMyAdmin:** [http://localhost:8081/](http://localhost:8081/)
 
 ## Features
 
@@ -23,7 +24,7 @@ A RESTful API built with PHP for managing users and vacation requests with JWT a
 ```bash
 curl -X POST http://localhost:8080/users/authenticate \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "password123"}'
+  -d '{"username": "admin", "password": "admin"}'
 ```
 
 ### 2. Create Vacation Request
@@ -79,8 +80,16 @@ JWT_SECRET=your-super-secret-key-here
 1. Clone the repository
 2. Copy `.env.example` to `.env` and configure
 3. Run with Docker: `docker-compose up -d`
-4. Set up database tables: `mysql -u appuser -p my_database < vacation_schema.sql`
+4. Import database: `mysql -u appuser -p my_database < my_database.sql` or using phpMyAdmin
 5. Access API at `http://localhost:8080`
+6. Access phpMyAdmin at `http://localhost:8081`
+
+## Default Admin Credentials
+
+```
+Username: admin
+Password: admin
+```
 
 ## Documentation
 
